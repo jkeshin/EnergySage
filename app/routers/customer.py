@@ -52,7 +52,7 @@ def create_customer(customer_payload: dict, db: Session = Depends(get_db)):
 
     if not check_if_email_unique(customer_payload.get("email"), db):
         raise HTTPException(status_code=409, detail="Email already taken")
-    
+
     if ELECTRICITY_USAGE_KWH in customer_payload.keys() and not isinstance(customer_payload.get("electricity_usage_kwh"), int):
         raise HTTPException(status_code=409, detail="electricity_usage_kwh should be number")
 

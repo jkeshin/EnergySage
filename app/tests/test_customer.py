@@ -14,6 +14,7 @@ import pytest
 from app.database import get_test_db
 from app.routers.customer import create_customer, read_customer, patch_customer
 from app.models.customer import CustomerModel
+from app.models.propertyAddress import PropertyAddressModel
 
 @pytest.fixture(scope="function")
 def setup_db():
@@ -47,7 +48,7 @@ def setup_customer(setup_db):
         db.rollback()  # Rollback changes to maintain the database state
 
 
-@pytest.mark.parametrize("test_input,expected", [
+@pytest.mark.parametrize("test_input, expected", [
     # Test case: Missing required fields
     ({}, HTTPException(status_code=400, detail="Missing Required Information")),
     # Test case: Invalid email
@@ -55,13 +56,16 @@ def setup_customer(setup_db):
     # Test case: Non-unique email
     ({'first_name': 'test', 'last_name':'customer', 'email': 'test@example.com'}, HTTPException(status_code=409, detail="Email already taken")),
     # Test case: electricity_usage_kwh is not number
-    ({'first_name': 'test', 'last_name':'customer', 'email': 'test@example.com', "electricity_usage_kwh": '12'}, HTTPException(status_code=409, detail="electricity_usage_kwh should be number")),
+    ({'first_name': 'test', 'last_name':'customer', 'email': 'electricity@example.com', "electricity_usage_kwh": '12'}, HTTPException(status_code=409, detail="electricity_usage_kwh should be number")),
     # Test case: old_roof is not bool
-    ({'first_name': 'test', 'last_name':'customer', 'email': 'test@example.com', "electricity_usage_kwh": 12, "old_roof": 12}
+    ({'first_name': 'test', 'last_name':'customer', 'email': 'old_roof@example.com', "electricity_usage_kwh": 12, "old_roof": 12}
     , HTTPException(status_code=409, detail="old_roof should be boolean")),
-    # Test case: Property address provided
+    # Test case: Property address provided with incorrect postal code
     ({'first_name': 'test', 'last_name': 'customer', 'email': 'omg@xyz.com', "electricity_usage_kwh": 12, "old_roof": True,
-        'address': {'street': '112 test road', 'city': 'TestCity', 'state': 'AA', 'postal_code': '12345'}}, None)
+        'property_address': {'street': '112 test road', 'city': 'TestCity', 'state_code': 'AA', 'postal_code': '123456'}}, HTTPException(status_code=400, detail="Invalid Postal Code. It should be a 5-digit number")),
+    # Test case: Property address provided
+    ({'first_name': 'test', 'last_name': 'customer', 'email': 'omgitworks@xyz.com', "electricity_usage_kwh": 12, "old_roof": True,
+        'property_address': {'street': '112 test road', 'city': 'TestCity', 'state_code': 'AA', 'postal_code': '12345'}}, None)
 ])
 def test_create_customer(setup_db, setup_customer, test_input, expected):
     db = setup_db # Access the database session from the setup_db fixture
@@ -112,9 +116,13 @@ def test_read_customer_not_found(setup_db, setup_customer):
         # Test case: postal_code is not a 5 digit number
         (str(uuid.uuid4()), 'new.mail@check.com', {'property_address': {'postal_code': 'invalid'}}, HTTPException(status_code=400, detail="Invalid Postal Code. It should be a 5-digit number.")),
         # Test case: Customer updated successfully
-        (str(uuid.uuid4()), 'new.mail@check.com', {'first_name': 'new_name'}, None)
+        (str(uuid.uuid4()), 'new.mail@check.com', {'first_name': 'new_name'}, 'first_name'),
+        # Test case: Property Address updated successfully
+        (str(uuid.uuid4()), 'new.mail@check.com', { "property_address": { "street": "110 Beacon St", "city": "Boston", "postal_code": "12345", "state_code": "MA" } }, 'property_address')
     ]
 )
+
+     
 def test_patch_customer(customer_id, customer_email, updated_customer, expected, setup_db, setup_customer):
     # Add a customer to the test database
     customer_db = CustomerModel(id=customer_id, first_name='test', last_name='customer', email=customer_email)
@@ -122,9 +130,31 @@ def test_patch_customer(customer_id, customer_email, updated_customer, expected,
     setup_db.commit()
 
     # Call the function with the test database, customer ID, and updated customer
-    if expected is None:
+    if expected == 'first_name':
         customer = patch_customer(customer_id, updated_customer, setup_db)
         assert customer.first_name == updated_customer.get('first_name')
+
+    elif expected == 'new_property_address':
+        customer = patch_customer(customer_id, updated_customer, setup_db)
+        property_address = setup_db.query(PropertyAddressModel).filter(PropertyAddressModel.id == customer.property_address_id).first()
+
+        assert property_address.street == "110 Beacon St"
+        assert property_address.city == "Boston"
+        assert property_address.postal_code == "12345"
+        assert property_address.state_code == "MA"
+
+    elif expected == 'update_property_address':
+        customer_record = setup_db.query(CustomerModel).filter(email=customer_email).first()
+        property_address_id = str(uuid.uuid4())
+        customer_record.property_address_id = property_address_id
+        setup_db.add(customer_record)
+
+        property_address_record = PropertyAddressModel(id=property_address_id, street="110 Beacon St", postal_code="Boston", state_code="MA")
+        setup_db.add(property_address_record)
+        setup_db.commit()
+
+
+
     else:
         with pytest.raises(HTTPException) as e:
             patch_customer(customer_id, updated_customer, setup_db)
