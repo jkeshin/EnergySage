@@ -1,0 +1,221 @@
+openapi: 3.0.0
+info:
+  title: Customer API for the EnergySage Interview
+  version: '1.0'
+servers:
+  - url: 'http://localhost:3000'
+paths:
+  '/customer/{customerId}':
+    parameters:
+      - schema:
+          type: string
+        name: customerId
+        in: path
+        required: true
+    get:
+      summary: Get Customer Info by Customer ID
+      tags: []
+      responses:
+        '200':
+          description: Customer Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Customer'
+              examples:
+                Get Alice Jones:
+                  value:
+                    id: 088242aa-1805-450a-a4ea-f1f392b330f4
+                    first_name: Alice
+                    last_name: Jones
+                    email: ajones@example.com
+                    electricity_usage_kwh: 10200
+                    old_roof: true
+                    property_address:
+                      street: 100 Beacon St
+                      city: Boston
+                      postal_code: '02161'
+                      state_code: MA
+            application/xml:
+              schema:
+                type: object
+                properties: {}
+        '404':
+          description: Customer Not Found
+      operationId: get-customer
+      description: Retrieve the information of a customer by customer ID
+    patch:
+      summary: Update Customer Information
+      operationId: patch-customer
+      responses:
+        '200':
+          description: Customer Updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Customer'
+              examples:
+                Update Rebecca Baker:
+                  value:
+                    id: 088242aa-1805-450a-a4ea-f1f392b330f4
+                    first_name: Rebecca
+                    last_name: Baker
+                    email: rbaker@example.com
+                    electricity_usage_kwh: 10200
+                    old_roof: true
+                    property_address:
+                      street: 150 Main St
+                      city: Cambridge
+                      postal_code: '02111'
+                      state_code: MA
+        '404':
+          description: Customer Not Found
+        '409':
+          description: Email Already Taken
+      description: Update the information of an existing customer.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                first_name:
+                  type: string
+                last_name:
+                  type: string
+                email:
+                  type: string
+                  format: email
+                electricity_usage_kwh:
+                  type: number
+                old_roof:
+                  type: boolean
+                property_address:
+                  type: object
+                  properties:
+                    street:
+                      type: string
+                    city:
+                      type: string
+                    state_code:
+                      type: string
+                    postal_code:
+                      type: string
+                      minLength: 5
+                      maxLength: 5
+                      pattern: '^[0-0]+'
+            examples:
+              Update First Name:
+                value:
+                  first_name: Rebecca
+              Update Email:
+                value:
+                  email: rebecca@gmail.com
+              Update Address:
+                value:
+                  property_address:
+                    street: 150 Main St
+                    city: Cambridge
+                    state_code: MA
+                    postal_code: '02111'
+        description: Patch customer properties to update.
+  /customer:
+    post:
+      summary: Create New Customer
+      operationId: post-customer
+      responses:
+        '200':
+          description: Customer Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Customer'
+        '400':
+          description: Missing Required Information
+        '409':
+          description: Email Already Taken
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                first_name:
+                  type: string
+                last_name:
+                  type: string
+                email:
+                  type: string
+                  format: email
+                electricity_usage_kwh:
+                  type: number
+                old_roof:
+                  type: boolean
+                property_address:
+                  type: object
+                  properties:
+                    street:
+                      type: string
+                    city:
+                      type: string
+                    postal_code:
+                      type: string
+                      minLength: 5
+                      maxLength: 5
+                      pattern: '^[0-0]+'
+                    state_code:
+                      type: string
+              required:
+                - first_name
+                - last_name
+                - email
+            examples:
+              Create sample customer:
+                value:
+                  first_name: Bob
+                  last_name: Fellow
+                  email: bob@example.com
+                  electricity_usage_kwh: 10200
+                  old_roof: false
+                  property_address:
+                    street: 110 Beacon St
+                    city: Boston
+                    state_code: MA
+                    postal_code: '02169'
+        description: Post the necessary fields for the API to create a new customer.
+      description: Create a new customer.
+    parameters: []
+components:
+  schemas:
+    Customer:
+      title: Customer
+      type: object
+      description: Customer who has registered for the EnergySage rooftop marketplace
+      properties:
+        id:
+          type: string
+        first_name:
+          type: string
+        last_name:
+          type: string
+        email:
+          type: string
+          format: email
+        electricity_usage_kwh:
+          type: number
+        old_roof:
+          type: boolean
+        property_address:
+          type: object
+          properties:
+            street:
+              type: string
+            city:
+              type: string
+            state_code:
+              type: string
+            postal_code:
+              type: string
+              minLength: 5
+              maxLength: 5
+              pattern: '^[0-9]+'
