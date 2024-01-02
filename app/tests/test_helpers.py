@@ -86,7 +86,7 @@ def test_create_property_address_record(setup_db, setup_customer):
     }
 
     # Call the function with the test database and payload
-    property_address_db = create_property_address_record(property_address_payload, db)
+    property_address_db = create_property_address_record(property_address_payload, str(uuid.uuid4()), db)
 
     # Assert that the returned PropertyAddressModel has the expected attributes
     assert property_address_db.postal_code == property_address_payload['postal_code']

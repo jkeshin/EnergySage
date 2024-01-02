@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field, EmailStr, Extra
 from typing import Optional
-from .propertyAddress import PropertyAddress
+# from .propertyAddress import PropertyAddress
 
 """
 Defines a Pydantic model representing Customer details.
@@ -17,10 +17,9 @@ class Customer(BaseModel):
         orm_mode = True
         extra = Extra.forbid
 
-    id: str
+    _id: str
     first_name: str
     last_name: str
     email: str
     electricity_usage_kwh: Optional[int] = None
     old_roof: Optional[bool] = None
-    property_address: Optional[PropertyAddress] = None

@@ -15,6 +15,7 @@ from app.database import get_test_db
 from app.routers.customer import create_customer, read_customer, patch_customer
 from app.models.customer import CustomerModel
 from app.models.propertyAddress import PropertyAddressModel
+from app.schemas.propertyAddress import CustomerResponse
 
 @pytest.fixture(scope="function")
 def setup_db():
@@ -73,7 +74,7 @@ def test_create_customer(setup_db, setup_customer, test_input, expected):
     # Call the function with the test database and payload
     if expected is None:
         customer_db = create_customer(test_input, db)
-        assert isinstance(customer_db, CustomerModel)
+        assert isinstance(customer_db, CustomerResponse)
     else:
         with pytest.raises(HTTPException) as e:
             create_customer(test_input, db)
@@ -93,7 +94,6 @@ def test_read_customer(setup_db):
     assert customer.first_name == 'name'
     assert customer.last_name == 'lastname'
     assert customer.email == 'first@last.com'
-
 
 def test_read_customer_not_found(setup_db, setup_customer):
     # Call the function with the test database and a non-existent customer ID
@@ -118,7 +118,7 @@ def test_read_customer_not_found(setup_db, setup_customer):
         # Test case: Customer updated successfully
         (str(uuid.uuid4()), 'new.mail@check.com', {'first_name': 'new_name'}, 'first_name'),
         # Test case: Property Address updated successfully
-        (str(uuid.uuid4()), 'new.mail@check.com', { "property_address": { "street": "110 Beacon St", "city": "Boston", "postal_code": "12345", "state_code": "MA" } }, 'property_address')
+        (str(uuid.uuid4()), 'new.mail@check.com', { "property_address": { "street": "110 Beacon St", "city": "Boston", "postal_code": "12345", "state_code": "MA" } }, 'new_property_address')
     ]
 )
 
@@ -135,25 +135,23 @@ def test_patch_customer(customer_id, customer_email, updated_customer, expected,
         assert customer.first_name == updated_customer.get('first_name')
 
     elif expected == 'new_property_address':
-        customer = patch_customer(customer_id, updated_customer, setup_db)
-        property_address = setup_db.query(PropertyAddressModel).filter(PropertyAddressModel.id == customer.property_address_id).first()
+        patch_customer(customer_id, updated_customer, setup_db)
+        property_address = setup_db.query(PropertyAddressModel).filter(PropertyAddressModel.customer_id == customer_id).first()
 
         assert property_address.street == "110 Beacon St"
         assert property_address.city == "Boston"
         assert property_address.postal_code == "12345"
         assert property_address.state_code == "MA"
+    # Need to add this test case
+    # elif expected == 'update_property_address':
+    #     customer_record = setup_db.query(CustomerModel).filter(email=customer_email).first()
+    #     property_address_id = str(uuid.uuid4())
+    #     customer_record.property_address_id = property_address_id
+    #     setup_db.add(customer_record)
 
-    elif expected == 'update_property_address':
-        customer_record = setup_db.query(CustomerModel).filter(email=customer_email).first()
-        property_address_id = str(uuid.uuid4())
-        customer_record.property_address_id = property_address_id
-        setup_db.add(customer_record)
-
-        property_address_record = PropertyAddressModel(id=property_address_id, street="110 Beacon St", postal_code="Boston", state_code="MA")
-        setup_db.add(property_address_record)
-        setup_db.commit()
-
-
+    #     property_address_record = PropertyAddressModel(id=property_address_id, street="110 Beacon St", postal_code="Boston", state_code="MA")
+    #     setup_db.add(property_address_record)
+    #     setup_db.commit()
 
     else:
         with pytest.raises(HTTPException) as e:

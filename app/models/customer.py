@@ -16,15 +16,14 @@ class CustomerModel(Base):
     - property_address_id: Foreign key referencing the property address of the customer
     - property_address: Relationship with PropertyAddressModel
     """
-    __tablename__ = "customers"
+    __tablename__ = "customer"
 
-    id = Column(String, primary_key=True, index=True)
-    first_name = Column(String, nullable=False)
-    last_name = Column(String, nullable=False)
-    email = Column(String, unique=True, index=True, nullable=False)
+    id = Column(String(36), primary_key=True, index=True)
+    first_name = Column(String(255), nullable=False)
+    last_name = Column(String(255), nullable=False)
+    email = Column(String(255), unique=True, index=True, nullable=False)
     electricity_usage_kwh = Column(Integer)
     old_roof = Column(Boolean)
-    property_address_id = Column(String, ForeignKey("property_addresses.id"))
 
-    # Relationship with PropertyAddressModel
-    property_address = relationship("PropertyAddressModel")
+    property_address = relationship('PropertyAddressModel', back_populates='customer')
+

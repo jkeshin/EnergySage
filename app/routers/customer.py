@@ -1,11 +1,11 @@
 from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.orm import Session
 from app.schemas.customer import Customer
-from app.schemas.propertyAddress import PropertyAddress
+from app.schemas.propertyAddress import PropertyAddress, CustomerResponse
 from app.database import get_db
 from app.models.customer import CustomerModel
 from app.models.propertyAddress import PropertyAddressModel
-from app.helpers import check_if_email_unique, create_property_address_record, validate_email, validate_postal_code
+from app.helpers import check_if_email_unique, create_property_address_record, validate_email, validate_postal_code, get_customer_and_property_address
 from typing import List
 
 import uuid, re
@@ -31,7 +31,7 @@ EMAIL = 'email'
 CUSTOMER_REQUIRED_FIELDS = ['first_name', 'last_name', 'email']
 POSTAL_CODE = 'postal_code'
 
-@router.post("/customer/", response_model=Customer)
+@router.post("/customer/", response_model=CustomerResponse)
 def create_customer(customer_payload: dict, db: Session = Depends(get_db)):
     """
     Endpoint to create a new customer with optional property address.
@@ -41,7 +41,7 @@ def create_customer(customer_payload: dict, db: Session = Depends(get_db)):
     - db (Session): SQLAlchemy database session.
 
     Returns:
-    - Customer: Created customer details.
+    - CustomerResponse: Created customer and property address details.
     """
 
     if not set(CUSTOMER_REQUIRED_FIELDS).issubset(customer_payload.keys()):
@@ -58,17 +58,6 @@ def create_customer(customer_payload: dict, db: Session = Depends(get_db)):
 
     if OLD_ROOF in customer_payload.keys() and not isinstance(customer_payload.get("old_roof"), bool):
         raise HTTPException(status_code=409, detail="old_roof should be boolean")
-    
-    
-    # Create property address with a new ID
-    property_address_db = None
-    property_address_payload = customer_payload.get("property_address")
-
-    
-    if property_address_payload is not None:
-        if not validate_postal_code(property_address_payload.get("postal_code")):
-            raise HTTPException(status_code=400, detail="Invalid Postal Code. It should be a 5-digit number.")
-        property_address_db = create_property_address_record(property_address_payload, db)
 
     # Create customer with the property address ID
     customer_db = CustomerModel(
@@ -78,15 +67,22 @@ def create_customer(customer_payload: dict, db: Session = Depends(get_db)):
         email=customer_payload.get("email"),
         electricity_usage_kwh=customer_payload.get("electricity_usage_kwh"),
         old_roof=customer_payload.get("old_roof"),
-        property_address_id=property_address_db.id if property_address_db else None
     )
     db.add(customer_db)
+    db.flush()
+    # Create property address with a new ID
+    property_address_db = None
+    property_address_payload = customer_payload.get("property_address")
+    
+    if property_address_payload is not None:
+        property_address_db = create_property_address_record(property_address_payload, customer_db.id, db)
+
     db.commit()
-    db.refresh(customer_db)
+    db.flush()
 
-    return customer_db
+    return get_customer_and_property_address(customer_db.id, db)
 
-@router.get("/customer/{customer_id}", response_model=Customer)
+@router.get("/customer/{customer_id}", response_model=CustomerResponse)
 def read_customer(customer_id: str, db: Session = Depends(get_db)):
     """
     Endpoint to read a customer by their ID.
@@ -96,14 +92,12 @@ def read_customer(customer_id: str, db: Session = Depends(get_db)):
     - db (Session): SQLAlchemy database session.
 
     Returns:
-    - Customer: Retrieved customer details.
+    - CustomerResponse: Retrieved customer and property address details.
     """
-        
-    customer_db = db.query(CustomerModel).filter(CustomerModel.id == customer_id).first()
-    if customer_db is None:
-        raise HTTPException(status_code=404, detail="Customer not found")        
-
-    return customer_db
+    data = get_customer_and_property_address(customer_id, db)
+    if data:
+        return data
+    raise HTTPException(status_code=404, detail="Customer not found")    
 
 
 @router.get("/customers", response_model=List[Customer])
@@ -122,7 +116,7 @@ def read_customers(db: Session = Depends(get_db)):
     return customers_db
 
 
-@router.patch("/customer/{customer_id}", response_model=Customer)
+@router.patch("/customer/{customer_id}", response_model=CustomerResponse)
 def patch_customer(customer_id: str, updated_customer: dict, db: Session = Depends(get_db)):
     """
     Endpoint to partially update a customer's details.
@@ -133,7 +127,7 @@ def patch_customer(customer_id: str, updated_customer: dict, db: Session = Depen
     - db (Session): SQLAlchemy database session.
 
     Returns:
-    - Customer: Updated customer details.
+    - CustomerResponse: Retrieved customer and property address details.
     """
 
     customer_db = db.query(CustomerModel).filter(CustomerModel.id == customer_id).first()
@@ -163,13 +157,10 @@ def patch_customer(customer_id: str, updated_customer: dict, db: Session = Depen
     # Update property address data if the field is present in the request payload
     if "property_address" in updated_customer:
         property_address_db = db.query(PropertyAddressModel).filter(
-            PropertyAddressModel.id == customer_db.property_address_id).first()
+            PropertyAddressModel.customer_id == customer_db.id).first()
         
         if property_address_db is None:
-            property_address_db = create_property_address_record(updated_customer.get("property_address"), db)
-
-            customer_db.property_address_id = property_address_db.id
-            customer_db.property_address = property_address_db
+            property_address_db = create_property_address_record(updated_customer.get("property_address"), customer_db.id, db)
 
         else:
             for field, value in updated_customer.get("property_address").items():
@@ -178,4 +169,5 @@ def patch_customer(customer_id: str, updated_customer: dict, db: Session = Depen
 
     db.commit()
     db.refresh(customer_db)
-    return customer_db
+
+    return get_customer_and_property_address(customer_db.id, db)

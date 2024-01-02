@@ -15,10 +15,14 @@ class PropertyAddressModel(Base):
     postal_code (str): Represents the postal code of the property address.
     state_code (str): Represents the state code of the property address (maximum length of 5 characters).
     """
-    __tablename__ = "property_addresses"
+    __tablename__ = "property_address"
 
-    id = Column(String, primary_key=True, index=True)
-    street = Column(String)
-    city = Column(String)
-    postal_code = Column(String)
-    state_code = Column(String(5))
+    id = Column(String(36), primary_key=True, index=True)
+    customer_id = Column(String(36), ForeignKey('customer.id'))
+    street = Column(String(255))
+    city = Column(String(255))
+    postal_code = Column(String(255))
+    state_code = Column(String(255))
+
+    # Relationship with CustomerModel
+    customer = relationship("CustomerModel", back_populates='property_address')
