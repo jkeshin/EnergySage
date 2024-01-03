@@ -18,7 +18,7 @@ class CustomerModel(Base):
     """
     __tablename__ = "customer"
 
-    id = Column(String(36), primary_key=True, index=True)
+    id = Column(String(255), primary_key=True, index=True)
     first_name = Column(String(255), nullable=False)
     last_name = Column(String(255), nullable=False)
     email = Column(String(255), unique=True, index=True, nullable=False)

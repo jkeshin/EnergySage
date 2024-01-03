@@ -14,16 +14,28 @@ This module contains the Pydantic PropertyAddress model, which defines the struc
 class PropertyAddress(BaseModel):
     class Config:
         orm_mode = True
-        exclude = {"_id", "customer_id"}
+        exclude = {"_id"}
 
     _id: Optional[str] = Field(None, description="Automatically generated ID")
-    customer_id: Optional[str] = None
-    street: str
-    city: str
+    _customer_id: Optional[str] = None
+    street: Optional[str]
+    city: Optional[str]
     postal_code: Optional[str] 
     state_code: Optional[str]
     
 class CustomerResponse(BaseModel):
+    """
+    Defines a Pydantic model representing a CustomerResponse address.
+
+    This module contains the Pydantic CustomerResponse model, which defines the structure of property address data:
+    - id 
+    - first_name 
+    - last_name 
+    - email 
+    - electricity_usage_kwh 
+    - old_roof 
+    - property_address 
+    """
     id: str
     first_name: str
     last_name: str

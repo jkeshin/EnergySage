@@ -17,12 +17,12 @@ class PropertyAddressModel(Base):
     """
     __tablename__ = "property_address"
 
-    id = Column(String(36), primary_key=True, index=True)
-    customer_id = Column(String(36), ForeignKey('customer.id'))
+    id = Column(String(255), primary_key=True, index=True)
+    customer_id = Column(String(255), ForeignKey('customer.id'))
     street = Column(String(255))
     city = Column(String(255))
     postal_code = Column(String(255))
-    state_code = Column(String(255))
+    state_code = Column(String(5))
 
     # Relationship with CustomerModel
     customer = relationship("CustomerModel", back_populates='property_address')

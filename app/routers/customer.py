@@ -70,8 +70,8 @@ def create_customer(customer_payload: dict, db: Session = Depends(get_db)):
     )
     db.add(customer_db)
     db.flush()
+    
     # Create property address with a new ID
-    property_address_db = None
     property_address_payload = customer_payload.get("property_address")
     
     if property_address_payload is not None:

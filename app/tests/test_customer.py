@@ -118,7 +118,9 @@ def test_read_customer_not_found(setup_db, setup_customer):
         # Test case: Customer updated successfully
         (str(uuid.uuid4()), 'new.mail@check.com', {'first_name': 'new_name'}, 'first_name'),
         # Test case: Property Address updated successfully
-        (str(uuid.uuid4()), 'new.mail@check.com', { "property_address": { "street": "110 Beacon St", "city": "Boston", "postal_code": "12345", "state_code": "MA" } }, 'new_property_address')
+        (str(uuid.uuid4()), 'new.mail@check.com', { "property_address": { "street": "110 Beacon St", "city": "Boston", "postal_code": "12345", "state_code": "MA" } }, 'new_property_address'),
+        # Test case: Partial Property Address updated successfully
+        (str(uuid.uuid4()), 'new.mail@check.com', { "property_address": { "state_code": "PA" } }, 'update_property_address')
     ]
 )
 
@@ -142,16 +144,20 @@ def test_patch_customer(customer_id, customer_email, updated_customer, expected,
         assert property_address.city == "Boston"
         assert property_address.postal_code == "12345"
         assert property_address.state_code == "MA"
-    # Need to add this test case
-    # elif expected == 'update_property_address':
-    #     customer_record = setup_db.query(CustomerModel).filter(email=customer_email).first()
-    #     property_address_id = str(uuid.uuid4())
-    #     customer_record.property_address_id = property_address_id
-    #     setup_db.add(customer_record)
+ 
+    elif expected == 'update_property_address':
+        customer_record = setup_db.query(CustomerModel).filter(CustomerModel.email == customer_email).first()
+        property_address_id = str(uuid.uuid4())
+        setup_db.add(customer_record)
 
-    #     property_address_record = PropertyAddressModel(id=property_address_id, street="110 Beacon St", postal_code="Boston", state_code="MA")
-    #     setup_db.add(property_address_record)
-    #     setup_db.commit()
+        property_address_record = PropertyAddressModel(id=property_address_id, customer_id=customer_record.id,street="110 Beacon St", postal_code="Boston", state_code="MA")
+        setup_db.add(property_address_record)
+        setup_db.commit()
+
+        patch_customer(customer_id, updated_customer, setup_db)
+        updated_property_address = setup_db.query(PropertyAddressModel).filter(PropertyAddressModel.customer_id == customer_id).first()
+
+        assert updated_property_address.state_code == 'PA'
 
     else:
         with pytest.raises(HTTPException) as e:

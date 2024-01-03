@@ -5,12 +5,12 @@ from app.models.customer import CustomerModel
 from app.models.propertyAddress import PropertyAddressModel
 from sqlalchemy.orm import Session
 from app.schemas.propertyAddress import CustomerResponse, PropertyAddress
-
+# from app.routers.customer import POSTAL_CODE
 
 
 def validate_email(email: str) -> bool:
-     """
-     Validate an email address using a regular expression.
+    """
+    Validate an email address using a regular expression.
 
     Parameters:
     - email (str): The email address to be validated.
@@ -21,15 +21,10 @@ def validate_email(email: str) -> bool:
     The function uses a regular expression to check if the provided email address
     adheres to a common pattern for valid email formats
     """
-     regex = r'^[A-Za-z0-9]+[.-_]*[A-Za-z0-9]+@[A-Za-z0-9-]+(\.[A-Z|a-z]{2,})+$'
-     return re.fullmatch(regex, email) is not None
+    regex = r'^[A-Za-z0-9]+[.-_]*[A-Za-z0-9]+@[A-Za-z0-9-]+(\.[A-Z|a-z]{2,})+$'
+    return re.fullmatch(regex, email) is not None
 
 def validate_postal_code(postal_code: str):
-    if not (len(postal_code) == 5 and postal_code.isdigit()):
-        return False
-    return True
-
-def check_if_email_unique(email: str, db: Session) -> bool:
     """
     Validate a postal code.
 
@@ -43,6 +38,22 @@ def check_if_email_unique(email: str, db: Session) -> bool:
     - Consists of exactly five characters.
     - All characters are digits.
     """
+    if not (len(postal_code) == 5 and postal_code.isdigit()):
+        return False
+    return True
+
+def check_if_email_unique(email: str, db: Session) -> bool:
+    """
+    Check if the given email is unique in the database.
+
+    Args:
+        email (str): The email address to check for uniqueness.
+        db (Session): The SQLAlchemy database session.
+
+    Returns:
+        bool: True if the email is unique, False if it already exists in the database.
+    """
+
     if db.query(CustomerModel).filter(CustomerModel.email == email).first():
         return False
     return True
@@ -70,7 +81,7 @@ def create_property_address_record(property_address_payload: dict, customer_id: 
     as the ID, and the provided customer_id and property_address_payload details. The instance is
     then added to the database session, and the changes are flushed to ensure the ID is populated.
     """
-    if not validate_postal_code(property_address_payload.get("postal_code")):
+    if 'postal_code' in property_address_payload.keys() and not validate_postal_code(property_address_payload.get("postal_code")):
         raise HTTPException(status_code=400, detail="Invalid Postal Code. It should be a 5-digit number.")
     
     
@@ -119,7 +130,6 @@ def get_customer_and_property_address(customer_id: str, db: Session) -> Customer
             electricity_usage_kwh=customer.electricity_usage_kwh,
             old_roof=customer.old_roof,
             property_address=PropertyAddress(
-                customer_id=None,
                 street=property_address.street,
                 city=property_address.city,
                 postal_code=property_address.postal_code,
