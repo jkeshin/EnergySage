@@ -57,10 +57,10 @@ def setup_customer(setup_db):
     # Test case: Non-unique email
     ({'first_name': 'test', 'last_name':'customer', 'email': 'test@example.com'}, HTTPException(status_code=409, detail="Email already taken")),
     # Test case: electricity_usage_kwh is not number
-    ({'first_name': 'test', 'last_name':'customer', 'email': 'electricity@example.com', "electricity_usage_kwh": '12'}, HTTPException(status_code=409, detail="electricity_usage_kwh should be number")),
+    ({'first_name': 'test', 'last_name':'customer', 'email': 'electricity@example.com', "electricity_usage_kwh": '12'}, HTTPException(status_code=400, detail="electricity_usage_kwh should be number")),
     # Test case: old_roof is not bool
     ({'first_name': 'test', 'last_name':'customer', 'email': 'old_roof@example.com', "electricity_usage_kwh": 12, "old_roof": 12}
-    , HTTPException(status_code=409, detail="old_roof should be boolean")),
+    , HTTPException(status_code=400, detail="old_roof should be boolean")),
     # Test case: Property address provided with incorrect postal code
     ({'first_name': 'test', 'last_name': 'customer', 'email': 'omg@xyz.com', "electricity_usage_kwh": 12, "old_roof": True,
         'property_address': {'street': '112 test road', 'city': 'TestCity', 'state_code': 'AA', 'postal_code': '123456'}}, HTTPException(status_code=400, detail="Invalid Postal Code. It should be a 5-digit number")),
@@ -110,9 +110,9 @@ def test_read_customer_not_found(setup_db, setup_customer):
         # Test case: Email already taken
         (str(uuid.uuid4()), 'b.b@x.com', {'email': 'test@example.com'}, HTTPException(status_code=409, detail="Email already taken")),
         # Test case: electricity_usage_kwh is not number
-        (str(uuid.uuid4()), 'new.mail@check.com', {'electricity_usage_kwh': 'invalid'}, HTTPException(status_code=409, detail="electricity_usage_kwh should be number")),
+        (str(uuid.uuid4()), 'new.mail@check.com', {'electricity_usage_kwh': 'invalid'}, HTTPException(status_code=400, detail="electricity_usage_kwh should be number")),
         # Test case: old_roof is not boolean
-        (str(uuid.uuid4()), 'new.mail@check.com', {'old_roof': 'invalid'}, HTTPException(status_code=409, detail="old_roof should be boolean")),
+        (str(uuid.uuid4()), 'new.mail@check.com', {'old_roof': 'invalid'}, HTTPException(status_code=400, detail="old_roof should be boolean")),
         # Test case: postal_code is not a 5 digit number
         (str(uuid.uuid4()), 'new.mail@check.com', {'property_address': {'postal_code': 'invalid'}}, HTTPException(status_code=400, detail="Invalid Postal Code. It should be a 5-digit number.")),
         # Test case: Customer updated successfully

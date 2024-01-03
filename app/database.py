@@ -4,7 +4,7 @@ from sqlalchemy import Column, String, Integer, Boolean, ForeignKey, CheckConstr
 from sqlalchemy.orm import relationship
 
 DATABASE_URL = "mysql+pymysql://root:Mysql12345@localhost:3306/energysage_takehome" # Local testing
-# DATABASE_URL = "mysql+pymysql://root:Mysql12345@host.docker.internal:3306/energysage" # Docker Deployment URL to interact with local DB
+# DATABASE_URL = "mysql+pymysql://root:Mysql12345@host.docker.internal:3306/energysage_takehome" # Docker Deployment URL to interact with local DB
 
 
 # SQLAlchemy models

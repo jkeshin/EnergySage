@@ -30,6 +30,7 @@ PROPERTY_ADDRESS = "property_address"
 EMAIL = 'email'
 CUSTOMER_REQUIRED_FIELDS = ['first_name', 'last_name', 'email']
 POSTAL_CODE = 'postal_code'
+ID = "id"
 
 @router.post("/customer/", response_model=CustomerResponse)
 def create_customer(customer_payload: dict, db: Session = Depends(get_db)):
@@ -54,10 +55,10 @@ def create_customer(customer_payload: dict, db: Session = Depends(get_db)):
         raise HTTPException(status_code=409, detail="Email already taken")
 
     if ELECTRICITY_USAGE_KWH in customer_payload.keys() and not isinstance(customer_payload.get("electricity_usage_kwh"), int):
-        raise HTTPException(status_code=409, detail="electricity_usage_kwh should be number")
+        raise HTTPException(status_code=400, detail="electricity_usage_kwh should be number")
 
     if OLD_ROOF in customer_payload.keys() and not isinstance(customer_payload.get("old_roof"), bool):
-        raise HTTPException(status_code=409, detail="old_roof should be boolean")
+        raise HTTPException(status_code=400, detail="old_roof should be boolean")
 
     # Create customer with the property address ID
     customer_db = CustomerModel(
@@ -70,7 +71,7 @@ def create_customer(customer_payload: dict, db: Session = Depends(get_db)):
     )
     db.add(customer_db)
     db.flush()
-    
+
     # Create property address with a new ID
     property_address_payload = customer_payload.get("property_address")
     
@@ -131,6 +132,9 @@ def patch_customer(customer_id: str, updated_customer: dict, db: Session = Depen
     """
 
     customer_db = db.query(CustomerModel).filter(CustomerModel.id == customer_id).first()
+    # remove id if present in payload
+    updated_customer.pop(ID)
+    
     if customer_db is None:
         raise HTTPException(status_code=404, detail="Customer not found")
 
@@ -138,10 +142,10 @@ def patch_customer(customer_id: str, updated_customer: dict, db: Session = Depen
         raise HTTPException(status_code=409, detail="Email already taken")
     
     if ELECTRICITY_USAGE_KWH in updated_customer.keys() and not isinstance(updated_customer.get("electricity_usage_kwh"), int):
-        raise HTTPException(status_code=409, detail="electricity_usage_kwh should be number")
+        raise HTTPException(status_code=400, detail="electricity_usage_kwh should be number")
 
     if OLD_ROOF in updated_customer.keys() and not isinstance(updated_customer.get("old_roof"), bool):
-        raise HTTPException(status_code=409, detail="old_roof should be boolean")
+        raise HTTPException(status_code=400, detail="old_roof should be boolean")
     
     if PROPERTY_ADDRESS in updated_customer.keys():
         property_address_payload = updated_customer.get("property_address")
